@@ -1,5 +1,6 @@
 package com.app.sdg8www
 
+import android.app.Activity
 import android.app.AlertDialog
 import android.content.DialogInterface
 import android.content.Intent
@@ -27,14 +28,16 @@ import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageReference
-
+import java.io.Serializable
 class SettingsActivity : AppCompatActivity() {
     var uid: String? = null
     var database: FirebaseDatabase? = null
     var reference: DatabaseReference? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_settings)
+
         onBackPressedDispatcher.addCallback(object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 val alert = AlertDialog.Builder(this@SettingsActivity)
@@ -44,7 +47,9 @@ class SettingsActivity : AppCompatActivity() {
                     dialogInterface?.dismiss()
                 }
                 alert.show()
-            }})
+            }
+        })
+
         val logOutButton = findViewById<Button>(R.id.btn_logout)
         val icHome = findViewById<ImageView>(R.id.ic_home)
         val icInterview = findViewById<ImageView>(R.id.ic_interview)
@@ -56,51 +61,40 @@ class SettingsActivity : AppCompatActivity() {
         val etLastName = findViewById<EditText>(R.id.et_last_name)
         val etBio = findViewById<EditText>(R.id.et_bio)
         val imgProfile = findViewById<ImageView>(R.id.img_profile)
+
+        // Firebase 사용자 정보 가져오기
         val user = Firebase.auth.currentUser
         user?.let {
             uid = it.uid
-            database =
-                FirebaseDatabase.getInstance("https://sdg8-460da-default-rtdb.firebaseio.com/")
+            database = FirebaseDatabase.getInstance("https://sdg8-460da-default-rtdb.firebaseio.com/")
             reference = database!!.getReference("Users")
             reference!!.addValueEventListener(object : ValueEventListener {
                 override fun onDataChange(dataSnapshot: DataSnapshot) {
                     if (dataSnapshot.exists()) {
-                        val value = dataSnapshot.value as HashMap<String, Item>?
+                        val value = dataSnapshot.value as HashMap<String, Any>?
                         for ((id) in value!!) {
                             if (id == uid) {
-                                val firstName = dataSnapshot.child(id).child("firstName").getValue(
-                                    String::class.java
-                                )
-                                val lastName = dataSnapshot.child(id).child("lastName").getValue(
-                                    String::class.java
-                                )
-                                val bio = dataSnapshot.child(id).child("bio").getValue(
-                                    String::class.java
-                                )
-                                val image = dataSnapshot.child(id).child("image").getValue(
-                                    String::class.java
-                                )
-                                txName.text = firstName + " " + lastName
+                                val firstName = dataSnapshot.child(id).child("firstName").getValue(String::class.java)
+                                val lastName = dataSnapshot.child(id).child("lastName").getValue(String::class.java)
+                                val bio = dataSnapshot.child(id).child("bio").getValue(String::class.java)
+                                val image = dataSnapshot.child(id).child("image").getValue(String::class.java)
+
+                                // 사용자 정보 화면에 설정
+                                txName.text = "$firstName $lastName"
                                 etEmail.setText(it.email)
                                 etName.setText(firstName)
                                 etLastName.setText(lastName)
                                 etBio.setText(bio)
 
-                                val ref: StorageReference =
-                                    FirebaseStorage.getInstance().getReference("ProfilePictures")
-                                        .child(image!!)
+                                // 프로필 이미지 로드
+                                val ref: StorageReference = FirebaseStorage.getInstance().getReference("ProfilePictures").child(image!!)
                                 val ONE_MEGABYTE = (1024 * 1024).toLong()
                                 ref.getBytes(ONE_MEGABYTE)
                                     .addOnSuccessListener(OnSuccessListener<ByteArray> { bytes ->
-                                        val bmp =
-                                            BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                                        val bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
                                         imgProfile.setImageBitmap(bmp)
                                     }).addOnFailureListener(OnFailureListener {
-                                        /*Toast.makeText(
-                                            applicationContext,
-                                            "No Such file or Path found!!",
-                                            Toast.LENGTH_LONG
-                                        ).show()*/
+                                        // 파일 또는 경로를 찾을 수 없음
                                     })
                             }
                         }
@@ -109,7 +103,6 @@ class SettingsActivity : AppCompatActivity() {
 
                 override fun onCancelled(error: DatabaseError) {}
             })
-
         }
 
         icHome.setOnClickListener {

@@ -64,11 +64,13 @@
             android:layout_margin="20dp"
             android:background="@drawable/background_chat"
             android:orientation="vertical">
+
             <ListView
                 android:id="@+id/post_list_view"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="6" />
+
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="35dp"
@@ -76,15 +78,23 @@
                 android:orientation="horizontal">
                 <ImageView
                     android:layout_width ="30dp"
+                    android:id="@+id/your_profile"
                     android:src="@drawable/background_circle_blue"
                     android:layout_height="35dp"/>
                 <EditText
+                    android:id="@+id/write_comment"
                     android:layout_width="0dp"
                     android:layout_weight="1"
                     android:hint="Write a comment!"
                     android:background="@color/cadet_blue"
                     android:textColorHint="@color/white"
                     android:layout_height="35dp"/>
+                <Button
+                    android:id="@+id/btn_send"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="12sp"
+                    android:text="Send"/>
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>
