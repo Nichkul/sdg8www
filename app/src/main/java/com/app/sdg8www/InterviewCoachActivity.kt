@@ -30,6 +30,7 @@ import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
 import android.util.Log
+import android.widget.ScrollView
 
 class InterviewCoachActivity : AppCompatActivity() {
 
@@ -42,6 +43,8 @@ class InterviewCoachActivity : AppCompatActivity() {
     private lateinit var database: DatabaseReference
     private lateinit var userEmail: String
     private lateinit var selectedJob: String
+    private lateinit var layout: LinearLayout
+    private lateinit var scrollView: ScrollView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -59,13 +62,6 @@ class InterviewCoachActivity : AppCompatActivity() {
 
         // Initialize the Firebase database reference with the user's email
         database = Firebase.database.reference.child("Interview").child(userEmail.replace(".", ","))
-
-        // Clear previous conversation entries
-        database.removeValue().addOnSuccessListener {
-            Log.d("InterviewCoachActivity", "Previous conversation entries cleared.")
-        }.addOnFailureListener {
-            Log.e("InterviewCoachActivity", "Failed to clear previous conversation entries.", it)
-        }
 
         onBackPressedDispatcher.addCallback(object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
@@ -127,9 +123,15 @@ class InterviewCoachActivity : AppCompatActivity() {
                     2 -> currentListData = listData3
                 }
                 currentIndex = 0
-                val layout = findViewById<LinearLayout>(R.id.layout_list)
                 layout.removeAllViews() // Clear the conversation when a new job is selected
-                displayNextQuestion(layout)
+
+                // Clear previous conversation entries in Firebase
+                database.removeValue().addOnSuccessListener {
+                    Log.d("InterviewCoachActivity", "Previous conversation entries cleared.")
+                    displayNextQuestion() // Display the first question after clearing previous entries
+                }.addOnFailureListener {
+                    Log.e("InterviewCoachActivity", "Failed to clear previous conversation entries.", it)
+                }
             }
 
             override fun onNothingSelected(parent: AdapterView<*>) {
@@ -144,38 +146,30 @@ class InterviewCoachActivity : AppCompatActivity() {
         val result = findViewById<TextView>(R.id.tx_result)
         val header = findViewById<TextView>(R.id.tx_header)
         val etType = findViewById<EditText>(R.id.et_type)
-        val layout = findViewById<LinearLayout>(R.id.layout_list)
+        layout = findViewById(R.id.layout_list)
+        scrollView = findViewById(R.id.scroll_view)
         val btnSend = findViewById<Button>(R.id.btn_send)
 
         btnSend.setOnClickListener {
             if (etType.text.isNotEmpty()) {
                 val userMessage = etType.text.toString()
-                val textViewUser = TextView(this)
-                textViewUser.gravity = Gravity.RIGHT
-                textViewUser.setTextColor(Color.parseColor("#ffffff"))
-                textViewUser.text = userMessage
-                textViewUser.setBackgroundResource(R.drawable.background_circle_gray)
-                textViewUser.setPadding(20, 20, 20, 20)
-                layout.addView(textViewUser)
-
-                val botResponse = if (currentIndex < currentListData!!.size) {
-                    currentListData!![currentIndex++]
-                } else {
-                    "no more questions!"
-                }
-                val textViewBot = TextView(this)
-                textViewBot.gravity = Gravity.LEFT
-                textViewBot.setTextColor(Color.parseColor("#ffffff"))
-                textViewBot.text = botResponse
-                textViewBot.setBackgroundResource(R.drawable.background_circle_result)
-                textViewBot.setPadding(20, 20, 20, 20)
-                layout.addView(textViewBot)
+                addUserMessage(userMessage)
 
                 // Append conversation entry to Firebase
-                val conversationEntry = ConversationEntry(userMessage, botResponse)
+                val botQuestion = currentListData!![currentIndex]
+                val conversationEntry = ConversationEntry(userMessage, botQuestion)
                 database.push().setValue(conversationEntry)
 
+                // Move to the next question
+                currentIndex++
+                if (currentIndex < currentListData!!.size) {
+                    displayNextQuestion()
+                } else {
+                    addBotQuestion("no more questions!")
+                }
+
                 etType.setText("")
+                scrollToBottom()
             }
         }
 
@@ -210,26 +204,47 @@ class InterviewCoachActivity : AppCompatActivity() {
             ), null, Shader.TileMode.REPEAT
         )
         header.paint.shader = interviewTextShader
+
+        // Scroll to bottom when layout changes
+        layout.viewTreeObserver.addOnGlobalLayoutListener {
+            scrollToBottom()
+        }
     }
 
-    private fun displayNextQuestion(layout: LinearLayout) {
+    private fun displayNextQuestion() {
         if (currentIndex < currentListData!!.size) {
-            val botResponse = currentListData!![currentIndex++]
-            val textViewBot = TextView(this)
-            textViewBot.gravity = Gravity.LEFT
-            textViewBot.setTextColor(Color.parseColor("#ffffff"))
-            textViewBot.text = botResponse
-            textViewBot.setBackgroundResource(R.drawable.background_circle_result)
-            textViewBot.setPadding(20, 20, 20, 20)
-            layout.addView(textViewBot)
+            val botQuestion = currentListData!![currentIndex]
+            addBotQuestion(botQuestion)
         } else {
-            val textViewBot = TextView(this)
-            textViewBot.gravity = Gravity.LEFT
-            textViewBot.setTextColor(Color.parseColor("#ffffff"))
-            textViewBot.text = "no more questions!"
-            textViewBot.setBackgroundResource(R.drawable.background_circle_result)
-            textViewBot.setPadding(20, 20, 20, 20)
-            layout.addView(textViewBot)
+            val botQuestion = "no more questions!"
+            addBotQuestion(botQuestion)
+        }
+        scrollToBottom()
+    }
+
+    private fun addUserMessage(message: String) {
+        val textViewUser = TextView(this)
+        textViewUser.gravity = Gravity.RIGHT
+        textViewUser.setTextColor(Color.parseColor("#ffffff"))
+        textViewUser.text = message
+        textViewUser.setBackgroundResource(R.drawable.background_circle_gray)
+        textViewUser.setPadding(20, 20, 20, 20)
+        layout.addView(textViewUser)
+    }
+
+    private fun addBotQuestion(message: String) {
+        val textViewBot = TextView(this)
+        textViewBot.gravity = Gravity.LEFT
+        textViewBot.setTextColor(Color.parseColor("#ffffff"))
+        textViewBot.text = message
+        textViewBot.setBackgroundResource(R.drawable.background_circle_result)
+        textViewBot.setPadding(20, 20, 20, 20)
+        layout.addView(textViewBot)
+    }
+
+    private fun scrollToBottom() {
+        scrollView.post {
+            scrollView.fullScroll(View.FOCUS_DOWN)
         }
     }
 
