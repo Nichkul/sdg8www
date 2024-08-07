@@ -46,6 +46,7 @@ class InterviewCoachActivity : AppCompatActivity() {
     private lateinit var layout: LinearLayout
     private lateinit var scrollView: ScrollView
 
+    @SuppressLint("MissingInflatedId")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_interview_coach)

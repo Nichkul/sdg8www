@@ -1,51 +1,99 @@
 package com.app.sdg8www
 
-import Post
 import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ArrayAdapter
+import android.widget.BaseAdapter
 import android.widget.ImageView
 import android.widget.TextView
-import com.bumptech.glide.Glide
+import Post
+import android.util.Log
+import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.FirebaseDatabase
+import com.bumptech.glide.Glide // import Glide library
 
-// PostAdapter는 Post 객체의 목록을 표시하기 위해 ArrayAdapter를 확장합니다.
-class PostAdapter(context: Context, data: ArrayList<Post>) :
-    ArrayAdapter<Post>(context, R.layout.post_list, data) {
+class PostAdapter(
+    private val context: Context,
+    private val postsRef: DatabaseReference,
+    private val postList: List<Post>,
+    private val currentUserId: String
+) : BaseAdapter() {
 
-    // mCaseList는 어댑터가 처리할 Post 객체 목록을 보관합니다.
-    private val mCaseList: List<Post> = data
-    private val mContext: Context = context
+    override fun getCount(): Int = postList.size
 
-    override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
-        var view = convertView
-        val post = mCaseList[position]
+    override fun getItem(position: Int): Any = postList[position]
 
-        if (view == null) {
-            val inflater = LayoutInflater.from(context)
-            view = inflater.inflate(R.layout.post_list, parent, false)
+    override fun getItemId(position: Int): Long = position.toLong()
+
+    override fun getView(position: Int, convertView: View?, parent: ViewGroup?): View {
+        val view: View
+        val holder: ViewHolder
+
+        if (convertView == null) {
+            view = LayoutInflater.from(context).inflate(R.layout.post_list, parent, false)
+            holder = ViewHolder(view)
+            view.tag = holder
+        } else {
+            view = convertView
+            holder = view.tag as ViewHolder
         }
 
-        val txUser = view!!.findViewById<TextView>(R.id.user_name)
-        val txDate = view.findViewById<TextView>(R.id.date)
-        val txContext = view.findViewById<TextView>(R.id.context)
-        val txHeartCnt = view.findViewById<TextView>(R.id.heart_cnt)
-        val txProfile = view.findViewById<ImageView>(R.id.profile)
+        val post = postList[position]
+        val postId = post.postId
 
-        // 각 항목의 ID, 이름 및 설명을 설정합니다.
-        txUser.text = post.author
-        txDate.text = post.date
-        txContext.text = post.content
-        txHeartCnt.text = post.likeCount.toString()
+        holder.userName.text = post.author
+        holder.date.text = post.date
+        holder.content.text = post.content
+        holder.heartCount.text = post.likeCount.toString()
 
-        // Glide를 사용하여 이미지 로드
-        Glide.with(mContext)
-            .load(post.profile) // 이미지 URL
-            .placeholder(R.drawable.loading) // 로딩 중에 표시할 기본 이미지
-            .error(R.drawable.sad_face) // 오류 발생 시 표시할 이미지
-            .into(txProfile)
+        // 프로필 이미지 설정
+        if (!post.profile.isNullOrEmpty()) { // profile이 null이 아니고 비어 있지 않은 경우
+            Glide.with(context)
+                .load(post.profile) // URL or URI of the image
+                .placeholder(R.drawable.loading) // 이미지 로딩 중 표시할 플레이스홀더
+                .error(R.drawable.sad_face) // 로딩 실패 시 표시할 이미지
+                .into(holder.txProfile) // ImageView where the image will be loaded
+        } else {
+            holder.txProfile.setImageResource(R.drawable.background_circle_blue) // 기본 프로필 이미지 설정
+        }
+
+        if (post.likeUsers.contains(currentUserId)) {
+            holder.heart.setBackgroundResource(R.drawable.heart_image)
+        } else {
+            holder.heart.setBackgroundResource(R.drawable.heart_image_empty)
+        }
+
+        holder.heart.setOnClickListener {
+            if (currentUserId.isNotEmpty()) {
+                val postRef = postsRef.child(postId!!)
+
+                if (post.likeUsers.contains(currentUserId)) {
+                    post.likeCount = post.likeCount!! - 1
+                    post.likeUsers.remove(currentUserId)
+                } else {
+                    post.likeCount = post.likeCount!! + 1
+                    post.likeUsers.add(currentUserId)
+                }
+
+                postRef.child("likeCount").setValue(post.likeCount)
+                postRef.child("likeUsers").setValue(post.likeUsers)
+
+                notifyDataSetChanged()
+            } else {
+                Log.e("PostAdapter", "Current user ID is not set")
+            }
+        }
 
         return view
+    }
+
+    private class ViewHolder(view: View) {
+        val userName: TextView = view.findViewById(R.id.user_name)
+        val date: TextView = view.findViewById(R.id.date)
+        val content: TextView = view.findViewById(R.id.context)
+        val heart: ImageView = view.findViewById(R.id.heart)
+        val heartCount: TextView = view.findViewById(R.id.heart_cnt)
+        val txProfile: ImageView = view.findViewById(R.id.profile)
     }
 }

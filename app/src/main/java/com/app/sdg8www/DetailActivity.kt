@@ -115,6 +115,7 @@ class DetailActivity : AppCompatActivity() {
         btnSend.setOnClickListener {
             addCommentToFirebase()
         }
+
     }
 
     // Firebase에서 사용자 정보 가져오기
@@ -124,7 +125,7 @@ class DetailActivity : AppCompatActivity() {
                 override fun onDataChange(dataSnapshot: DataSnapshot) {
                     firstName = dataSnapshot.child("firstName").getValue(String::class.java) ?: ""
                     lastName = dataSnapshot.child("lastName").getValue(String::class.java) ?: ""
-                    profile = dataSnapshot.child("profile").getValue(String::class.java) ?: ""
+                    profile = dataSnapshot.child("image").getValue(String::class.java) ?: ""
 
                     // 디버그 로그
                     Log.d("DetailActivity", "User Name: $firstName $lastName")
@@ -144,17 +145,20 @@ class DetailActivity : AppCompatActivity() {
                 for (postSnapshot in dataSnapshot.children) {
                     val postData = postSnapshot.value as? Map<*, *>
                     if (postData != null) {
+                        val postId = postSnapshot.key as? String ?: ""
                         val author = postData["author"] as? String ?: ""
                         val content = postData["content"] as? String ?: ""
                         val date = postData["date"] as? String ?: ""
-                        val likeCount = postData["likeCount"] as? String ?: "0"
+                        val likeCount = postData["likeCount"] as? Long ?: 0
                         val profile = postData["profile"]as? String?: ""
-                        val post = Post(author, content, date, likeCount.toInt(), profile)
+                        val likeUsers = postData["likeUsers"] as? MutableList<String> ?: mutableListOf()
+                        val post = Post(postId, author, content, date, likeCount.toInt(), profile, likeUsers)
                         postListData.add(post)
                     }
                 }
+
                 // 어댑터 설정 및 리스트뷰 업데이트
-                val adapterPost = PostAdapter(this@DetailActivity, postListData)
+                val adapterPost = PostAdapter(this@DetailActivity, postsRef, postListData, uid.toString())
                 listView.adapter = adapterPost
 
                 // 리스트뷰를 맨 아래로 스크롤
@@ -178,11 +182,13 @@ class DetailActivity : AppCompatActivity() {
 
             // 새로운 댓글 객체 생성
             val newPost = Post(
+                postId = "",
                 author = "$firstName $lastName", // 사용자 이름으로 설정
                 content = commentContent, // 댓글 내용을 사용
                 date = currentDate, // 포맷된 현재 날짜 사용
                 likeCount = 0,
-                profile = profile
+                profile = profile,
+                likeUsers = mutableListOf()
             )
 
             // Firebase에 포스트 추가
