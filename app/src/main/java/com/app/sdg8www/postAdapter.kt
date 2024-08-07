@@ -51,11 +51,11 @@ class PostAdapter(
         if (!post.profile.isNullOrEmpty()) { // profile이 null이 아니고 비어 있지 않은 경우
             Glide.with(context)
                 .load(post.profile) // URL or URI of the image
-                .placeholder(R.drawable.loading) // 이미지 로딩 중 표시할 플레이스홀더
-                .error(R.drawable.sad_face) // 로딩 실패 시 표시할 이미지
+                .placeholder(R.drawable.profile) // 이미지 로딩 중 표시할 플레이스홀더
+                .error(R.drawable.profile) // 로딩 실패 시 표시할 이미지
                 .into(holder.txProfile) // ImageView where the image will be loaded
         } else {
-            holder.txProfile.setImageResource(R.drawable.background_circle_blue) // 기본 프로필 이미지 설정
+            holder.txProfile.setImageResource(R.drawable.profile) // 기본 프로필 이미지 설정
         }
 
         if (post.likeUsers.contains(currentUserId)) {
