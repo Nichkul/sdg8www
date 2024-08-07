@@ -36,7 +36,7 @@
         android:textColor="#7B819A"
         android:textSize="18sp"
         android:layout_gravity="center"
-        android:text="descriptionnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn" />
+        android:text="description" />
 
 
 </LinearLayout>
